@@ -8,6 +8,7 @@ import (
 
 // Entry.
 func Start() error {
+    fmt.Printf("Server is running..")
     l, err := net.Listen("tcp", ":8081")
     if err != nil { fmt.Printf("%v", err); return err }
 
@@ -21,6 +22,23 @@ func Start() error {
 
 func handleConnection(conn net.Conn) {
     fmt.Printf("works")
+    _, err := conn.Write([]byte("message"))
+    if err != nil { fmt.Printf("%v", err); return }
+    return
+}
+
+func awaitData(conn net.Conn, totalSize int) ([]byte, error) {
+    buffer := make([]byte, totalSize)
+    readSize := 0
+
+    for (readSize < totalSize) {
+        length, err := conn.Read(buffer[readSize:]) //Read method stores bytes being read into the buffer and returns the length of bytes read.
+        if err != nil { return nil, err }
+
+        readSize += length
+    }
+    fmt.Println(readSize)
+    return buffer, nil
 }
 
 // Headers.

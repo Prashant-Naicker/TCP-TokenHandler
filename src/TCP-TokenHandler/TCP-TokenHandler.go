@@ -9,6 +9,5 @@ import (
 // Entry.
 func main() {
     errc := server.Start()
-    err := errc
-	fmt.Printf("Fatal Error: %v\n", err)
+	fmt.Printf("Fatal Error: %v\n", errc)
 }
