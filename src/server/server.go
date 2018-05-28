@@ -4,11 +4,15 @@ import (
     "fmt"
     "net"
     "net/http"
+    "crypto/hmac"
+    "encoding/binary"
+    "crypto/sha256"
+    "encoding/base64"
 )
 
 // Entry.
 func Start() error {
-    fmt.Printf("Server is running..")
+    fmt.Println("Server is running..")
     l, err := net.Listen("tcp", ":8081")
     if err != nil { fmt.Printf("%v", err); return err }
 
@@ -21,13 +25,42 @@ func Start() error {
 }
 
 func handleConnection(conn net.Conn) {
-    fmt.Printf("works")
-    _, err := conn.Write([]byte("message"))
-    if err != nil { fmt.Printf("%v", err); return }
+    secretKey := []byte("prashIsCool")
+
+    fmt.Println("get size bytes")
+    sizeBytes, err := awaitData(conn, 2)
+    if (err != nil) {
+        conn.Close()
+        fmt.Println("Disconnected")
+        return
+    }
+    fmt.Println("convert to uint16")
+    size := binary.BigEndian.Uint16(sizeBytes)
+    fmt.Println(size)
+    fmt.Println("await message data")
+    data, err := awaitData(conn, int(size))
+    if (err != nil) {
+        conn.Close()
+        fmt.Println("Disconnected")
+        return
+    }
+    fmt.Println("write message back to user")
+    h := hmac.New(sha256.New, secretKey)
+    h.Write(data)
+    fmt.Println(base64.StdEncoding.EncodeToString(h.Sum(nil)))
+    _, err = conn.Write([]byte(base64.StdEncoding.EncodeToString(h.Sum(nil))))
+    if (err != nil) {
+        conn.Close()
+        fmt.Println("Disconnected")
+        return
+    }
+    fmt.Println("finish")
+
     return
 }
 
 func awaitData(conn net.Conn, totalSize int) ([]byte, error) {
+    fmt.Println("awaitData")
     buffer := make([]byte, totalSize)
     readSize := 0
 
@@ -37,7 +70,8 @@ func awaitData(conn net.Conn, totalSize int) ([]byte, error) {
 
         readSize += length
     }
-    fmt.Println(readSize)
+    fmt.Println("ReadSize Value: ", readSize)
+    fmt.Println("Data buffer: ", buffer)
     return buffer, nil
 }
 
